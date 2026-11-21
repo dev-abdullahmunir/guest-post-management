@@ -1,0 +1,164 @@
+#!/usr/bin/env php
+<?php
+
+define('LARAVEL_START', microtime(true));
+
+require __DIR__ . '/vendor/autoload.php';
+
+use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Support\Facades\Facade;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Container\Container;
+
+// 1. Setup Container & Facades
+$container = new Container();
+Container::setInstance($container);
+Facade::setFacadeApplication($container);
+
+// DB Config (XAMPP / Local MySQL default)
+$dbHost = getenv('DB_HOST') ?: '127.0.0.1';
+$dbPort = getenv('DB_PORT') ?: '3306';
+$dbDatabase = getenv('DB_DATABASE') ?: 'guest_post_db';
+$dbUsername = getenv('DB_USERNAME') ?: 'root';
+$dbPassword = getenv('DB_PASSWORD') ?: '';
+
+// Auto-create database if not exists
+try {
+    $pdo = new PDO("mysql:host={$dbHost};port={$dbPort}", $dbUsername, $dbPassword);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbDatabase}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
+} catch (PDOException $e) {
+    fwrite(STDERR, "\033[31m[Database Connection Error]\033[0m " . $e->getMessage() . PHP_EOL);
+    fwrite(STDERR, "Make sure MySQL (XAMPP / Laragon) is running on {$dbHost}:{$dbPort}." . PHP_EOL);
+    exit(1);
+}
+
+// 2. Setup Capsule Connection
+$capsule = new Capsule($container);
+$capsule->addConnection([
+    'driver' => 'mysql',
+    'host' => $dbHost,
+    'port' => $dbPort,
+    'database' => $dbDatabase,
+    'username' => $dbUsername,
+    'password' => $dbPassword,
+    'charset' => 'utf8mb4',
+    'collation' => 'utf8mb4_unicode_ci',
+    'prefix' => '',
+]);
+$capsule->setAsGlobal();
+$capsule->bootEloquent();
+
+// Bind Schema and DB facades
+$container->instance('db', $capsule->getDatabaseManager());
+Schema::swap($capsule->schema());
+
+// Ensure migrations table exists
+if (!Capsule::schema()->hasTable('migrations')) {
+    Capsule::schema()->create('migrations', function ($table) {
+        $table->increments('id');
+        $table->string('migration');
+        $table->integer('batch');
+    });
+}
+
+$command = $argv[1] ?? 'help';
+
+switch ($command) {
+    case 'migrate':
+        echo PHP_EOL . "\033[36mRunning migrations for database: {$dbDatabase}...\033[0m" . PHP_EOL . PHP_EOL;
+
+        // Gather migration files
+        $dirs = [
+            __DIR__ . '/database/migrations',
+            __DIR__ . '/Modules/ClientManagement/database/migrations',
+            __DIR__ . '/Modules/SellerManagement/Database/migrations',
+            __DIR__ . '/Modules/AdminManagement/Database/migrations',
+        ];
+
+        $migrationFiles = [];
+        foreach ($dirs as $dir) {
+            if (is_dir($dir)) {
+                foreach (glob($dir . '/*.php') as $file) {
+                    $migrationFiles[basename($file)] = $file;
+                }
+            }
+        }
+        ksort($migrationFiles);
+
+        $applied = Capsule::table('migrations')->pluck('migration')->toArray();
+        $batch = (Capsule::table('migrations')->max('batch') ?? 0) + 1;
+        $ranAny = false;
+
+        foreach ($migrationFiles as $name => $path) {
+            $key = pathinfo($name, PATHINFO_FILENAME);
+            if (in_array($key, $applied)) {
+                continue;
+            }
+
+            echo "  \033[33mMigrating:\033[0m {$name}" . PHP_EOL;
+            $migration = require $path;
+            if (is_object($migration) && method_exists($migration, 'up')) {
+                $migration->up();
+            }
+
+            Capsule::table('migrations')->insert([
+                'migration' => $key,
+                'batch' => $batch,
+            ]);
+
+            echo "  \033[32mMigrated:\033[0m  {$name}" . PHP_EOL;
+            $ranAny = true;
+        }
+
+        if (!$ranAny) {
+            echo "  \033[32mNothing to migrate. All migrations are up to date.\033[0m" . PHP_EOL;
+        } else {
+            echo PHP_EOL . "\033[32mDatabase migration completed successfully!\033[0m" . PHP_EOL;
+        }
+        break;
+
+    case 'db:seed':
+        echo PHP_EOL . "\033[36mRunning seeders...\033[0m" . PHP_EOL . PHP_EOL;
+        Capsule::statement('SET FOREIGN_KEY_CHECKS = 0;');
+        $seeders = [
+            'Modules\\ClientManagement\\database\\seeders\\ClientDatabaseSeeder',
+            'Modules\\SellerManagement\\Database\\seeders\\SellerDatabaseSeeder',
+            'Modules\\SellerManagement\\Database\\seeders\\WebsiteDatabaseSeeder',
+            'Modules\\ClientManagement\\Database\\seeders\\OrderDatabaseSeeder',
+            'Modules\\ClientManagement\\Database\\seeders\\OrderItemDatabaseSeeder',
+            'Modules\\AdminManagement\\Database\\seeders\\PaymentDatabaseSeeder',
+            'Modules\\AdminManagement\\Database\\seeders\\ExpenseDatabaseSeeder',
+            'Database\\Seeders\\DatabaseSeeder',
+        ];
+
+        foreach ($seeders as $seederClass) {
+            if (class_exists($seederClass)) {
+                echo "  \033[33mSeeding:\033[0m {$seederClass}" . PHP_EOL;
+                $seeder = new $seederClass();
+                $seeder->run();
+                echo "  \033[32mSeeded:\033[0m  {$seederClass}" . PHP_EOL;
+            }
+        }
+        Capsule::statement('SET FOREIGN_KEY_CHECKS = 1;');
+        echo PHP_EOL . "\033[32mDatabase seeding completed successfully!\033[0m" . PHP_EOL;
+        break;
+
+    case 'migrate:status':
+        $applied = Capsule::table('migrations')->get();
+        echo PHP_EOL . "Applied Migrations:" . PHP_EOL;
+        foreach ($applied as $m) {
+            echo " - [Batch {$m->batch}] {$m->migration}" . PHP_EOL;
+        }
+        break;
+
+    case 'help':
+    default:
+        echo PHP_EOL . "GuestPost Pro CLI" . PHP_EOL;
+        echo "Available commands:" . PHP_EOL;
+        echo "  php artisan migrate          Run all pending migrations" . PHP_EOL;
+        echo "  php artisan db:seed          Run database seeders" . PHP_EOL;
+        echo "  php artisan migrate:status   View migration status" . PHP_EOL;
+        break;
+}
