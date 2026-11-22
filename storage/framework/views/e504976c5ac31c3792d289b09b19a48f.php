@@ -15,10 +15,10 @@
       <p class="text-xs text-slate-500 mt-1">Track guest post orders, pricing, vendor costs, delivery deadlines, and net profit margins.</p>
     </div>
 
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2.5 flex-wrap">
       <!-- Search Input in Orders Section -->
-      <div class="relative w-64">
-        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-xs text-slate-400"></i>
+      <div class="relative w-56">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-xs text-slate-400 pointer-events-none"></i>
         <input 
           type="text" 
           id="orderSearchInput" 
@@ -28,11 +28,35 @@
         />
       </div>
 
+      <!-- Date Range Calendar Filter with Quick Reset -->
+      <div class="relative w-60">
+        <i class="fa-regular fa-calendar absolute left-3.5 top-3 text-xs text-slate-400 z-10 pointer-events-none"></i>
+        <input 
+          type="text" 
+          id="orderDateRangeFilter" 
+          data-calendar="true" 
+          data-mode="range" 
+          data-shortcuts="true"
+          onchange="filterOrdersTable()" 
+          placeholder="Filter by date range..." 
+          class="custom-datepicker w-full bg-white border border-slate-200/90 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-700 font-medium placeholder-slate-400 focus:outline-none focus:border-indigo-500 shadow-sm transition cursor-pointer"
+        />
+        <button 
+          type="button" 
+          id="clearOrderDateRangeBtn" 
+          onclick="clearOrderDateFilter()" 
+          title="Reset date filter" 
+          class="hidden absolute right-2.5 top-2.5 w-5 h-5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center text-[10px] transition z-10"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
       <!-- Add New Order Button -->
       <button 
         type="button" 
         onclick="openCreateOrderModal()" 
-        class="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/25 rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-2 transition"
+        class="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/25 rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-2 transition shrink-0"
       >
         <i class="fa-solid fa-plus text-[10px]"></i>
         <span>Create Order</span>
@@ -51,7 +75,7 @@
         </div>
         <div>
           <p class="text-xs font-medium text-slate-500">Total Orders</p>
-          <h3 class="text-xl font-black text-slate-800 mt-0.5"><?php echo e(count($orders ?? [])); ?></h3>
+          <h3 class="text-xl font-black text-slate-800 mt-0.5 font-mono"><?php echo e(count($orders ?? [])); ?></h3>
         </div>
       </div>
       <span class="inline-flex items-center text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">
@@ -154,7 +178,7 @@
         </thead>
         <tbody class="divide-y divide-slate-50 text-slate-600" id="ordersTableBody">
           <?php $__empty_1 = true; $__currentLoopData = $orders ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $order): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-            <tr class="hover:bg-slate-50/70 transition order-row" data-order-status="<?php echo e($order['status'] ?? 'pending'); ?>" id="order-row-<?php echo e($order['id']); ?>">
+            <tr class="hover:bg-slate-50/70 transition order-row" data-order-status="<?php echo e($order['status'] ?? 'pending'); ?>" data-order-date="<?php echo e(!empty($order['order_date']) ? date('Y-m-d', strtotime($order['order_date'])) : ''); ?>" id="order-row-<?php echo e($order['id']); ?>">
               
               <!-- Order Number -->
               <td class="py-3.5 pr-4 font-mono font-bold text-indigo-600 order-number">
@@ -542,18 +566,22 @@
           </div>
         </div>
 
-        <!-- Deadline & Status Grid -->
+        <!-- Deadline & Status Grid (Enhanced with Flatpickr Calendar) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1.5">Anchor / Post Deadline</label>
             <div class="relative">
-              <i class="fa-regular fa-calendar-check absolute left-3.5 top-3 text-xs text-slate-400"></i>
+              <i class="fa-regular fa-calendar-check absolute left-3.5 top-3 text-xs text-slate-400 z-10 pointer-events-none"></i>
               <input 
-                type="date" 
+                type="text" 
                 id="itemFormAnchorDeadline" 
                 name="anchor_deadline" 
-                class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition"
+                data-calendar="true"
+                data-shortcuts="true"
+                placeholder="Select Deadline..."
+                class="custom-datepicker w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-indigo-500 focus:bg-white transition cursor-pointer"
               >
+              <i class="fa-solid fa-chevron-down absolute right-3 top-3 text-[10px] text-slate-400 pointer-events-none"></i>
             </div>
           </div>
 
@@ -616,19 +644,64 @@
     filterOrdersTable();
   }
 
+  function clearOrderDateFilter() {
+    const el = document.getElementById('orderDateRangeFilter');
+    if (el && el._flatpickr) {
+      el._flatpickr.clear();
+    }
+    const clearBtn = document.getElementById('clearOrderDateRangeBtn');
+    if (clearBtn) clearBtn.classList.add('hidden');
+    filterOrdersTable();
+  }
+
   function filterOrdersTable() {
     const query = document.getElementById('orderSearchInput').value.toLowerCase().trim();
+    const fp = document.getElementById('orderDateRangeFilter')?._flatpickr;
+    const clearBtn = document.getElementById('clearOrderDateRangeBtn');
+
+    let startDate = null;
+    let endDate = null;
+
+    if (fp && fp.selectedDates && fp.selectedDates.length > 0) {
+      if (clearBtn) clearBtn.classList.remove('hidden');
+
+      if (fp.selectedDates.length === 1) {
+        // User is in the middle of picking the 2nd date: do not blank out rows yet
+        startDate = null;
+        endDate = null;
+      } else if (fp.selectedDates.length >= 2) {
+        startDate = new Date(fp.selectedDates[0]);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(fp.selectedDates[1]);
+        endDate.setHours(23, 59, 59, 999);
+      }
+    } else {
+      if (clearBtn) clearBtn.classList.add('hidden');
+    }
+
     const rows = document.querySelectorAll('.order-row');
 
     rows.forEach(row => {
       const orderNum = row.querySelector('.order-number')?.textContent.toLowerCase() || '';
       const client = row.querySelector('.order-client')?.textContent.toLowerCase() || '';
       const status = row.dataset.orderStatus || '';
+      const rowDateStr = (row.dataset.orderDate || '').trim();
 
       const matchesQuery = orderNum.includes(query) || client.includes(query);
       const matchesStatus = !activeStatusFilter || status === activeStatusFilter;
 
-      if (matchesQuery && matchesStatus) {
+      let matchesDate = true;
+      if (startDate && endDate && rowDateStr) {
+        const parts = rowDateStr.split('-');
+        if (parts.length === 3) {
+          const rowDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
+          matchesDate = rowDate >= startDate && rowDate <= endDate;
+        }
+      } else if (startDate && endDate && !rowDateStr) {
+        matchesDate = false;
+      }
+
+      if (matchesQuery && matchesStatus && matchesDate) {
         row.style.display = '';
       } else {
         row.style.display = 'none';
@@ -811,6 +884,7 @@
     document.getElementById('itemFormVendorId').value = '';
     document.getElementById('itemVendorInfo').classList.add('hidden');
     document.getElementById('itemFormProfitBadge').textContent = '+$0.00';
+    window.setDatePickerValue('itemFormAnchorDeadline', '');
 
     document.getElementById('itemFormTitle').textContent = 'Add Guest Post to Order';
     document.getElementById('itemFormSubmitText').textContent = 'Save Post';
@@ -833,7 +907,7 @@
     document.getElementById('itemFormTargetUrl').value = item.target_url || '';
     document.getElementById('itemFormClientPrice').value = item.client_price || '';
     document.getElementById('itemFormVendorPrice').value = item.vendor_price || '';
-    document.getElementById('itemFormAnchorDeadline').value = item.anchor_deadline ? item.anchor_deadline.substring(0, 10) : '';
+    window.setDatePickerValue('itemFormAnchorDeadline', item.anchor_deadline ? item.anchor_deadline.substring(0, 10) : '');
     document.getElementById('itemFormStatus').value = item.status || 'pending';
 
     onItemWebsiteChanged();
@@ -979,4 +1053,4 @@
 </script>
 <?php $__env->stopSection(); ?>
 
-<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH D:\Repositories\Guest Post\resources\views/orders/index.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH D:\Repositories\Guest Post\Modules\ClientManagement\Resources\views/orders/index.blade.php ENDPATH**/ ?>

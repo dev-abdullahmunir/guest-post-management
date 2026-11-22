@@ -1,0 +1,99 @@
+/**
+ * FINAPT Professional Custom Tooltip Theme
+ * Matches Pixel-Perfect Dark Arrow Pill Specification for GuestPost Pro
+ */
+
+.custom-tooltip-container {
+  position: fixed;
+  z-index: 99999999;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.94);
+  transition: opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1), transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform, opacity;
+}
+
+.custom-tooltip-container.tooltip-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.custom-tooltip-box {
+  background-color: #0f172a; /* Ultra-crisp Slate 900 */
+  color: #ffffff;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  padding: 6px 12px;
+  border-radius: 9px;
+  max-width: 280px;
+  text-align: center;
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.35), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  word-break: break-word;
+}
+
+/* Directional Arrow Carets */
+.custom-tooltip-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+
+/* Placement: Top -> Tooltip is above element, arrow at bottom pointing DOWN */
+.custom-tooltip-container[data-placement="top"] .custom-tooltip-arrow {
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px 5px 0 5px;
+  border-color: #0f172a transparent transparent transparent;
+}
+
+/* Placement: Bottom -> Tooltip is below element, arrow at top pointing UP (Matches Reference Image) */
+.custom-tooltip-container[data-placement="bottom"] .custom-tooltip-arrow {
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 0 5px 5px 5px;
+  border-color: transparent transparent #0f172a transparent;
+}
+
+/* Placement: Left -> Tooltip is left of element, arrow at right pointing RIGHT */
+.custom-tooltip-container[data-placement="left"] .custom-tooltip-arrow {
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 5px 0 5px 5px;
+  border-color: transparent transparent transparent #0f172a;
+}
+
+/* Placement: Right -> Tooltip is right of element, arrow at left pointing LEFT */
+.custom-tooltip-container[data-placement="right"] .custom-tooltip-arrow {
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 5px 5px 5px 0;
+  border-color: transparent #0f172a transparent transparent;
+}
+
+/* Keyboard Shortcut Pill inside Tooltip */
+.custom-tooltip-shortcut {
+  font-size: 10px;
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 700;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1.5px 5px;
+  border-radius: 5px;
+  margin-left: 4px;
+}

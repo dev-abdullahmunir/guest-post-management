@@ -1,9 +1,21 @@
+<?php
+  try {
+    $appSettings = $appSettings ?? \Modules\Shared\Models\Setting::getAllKeyValues();
+  } catch (\Exception $e) {
+    $appSettings = [];
+  }
+  $appName = !empty($appSettings['app_name']) ? $appSettings['app_name'] : 'GuestPost Pro';
+  $appTagline = !empty($appSettings['app_tagline']) ? $appSettings['app_tagline'] : 'Publish • Grow • Rank';
+  $appLogo = $appSettings['app_logo'] ?? '';
+  $appIcon = !empty($appSettings['app_icon']) ? $appSettings['app_icon'] : 'fa-solid fa-chart-line';
+  $footerCopyright = !empty($appSettings['footer_copyright']) ? $appSettings['footer_copyright'] : '© 2026 ' . $appName;
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?php echo $__env->yieldContent('title', 'Dashboard'); ?> - GuestPost Pro</title>
+  <title><?php echo $__env->yieldContent('title', 'Dashboard'); ?> - <?php echo e($appName); ?></title>
   
   <!-- Plus Jakarta Sans Font & FontAwesome 6 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,9 +23,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
-  <!-- Tailwind CSS CDN -->
+  <!-- Tailwind CSS CDN & SheetJS (Excel/CSV Processor) -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="<?php echo e(asset('js/custom-select.js')); ?>"></script>
+
+  <!-- Flatpickr (Professional Calendar & Date Range Picker) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="<?php echo e(asset('css/custom-datepicker.css')); ?>">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="<?php echo e(asset('js/custom-datepicker.js')); ?>"></script>
+
+  <!-- Professional Custom Tooltip System (Replaces Browser Defaults with Sleek Dark Arrow Tooltips) -->
+  <link rel="stylesheet" href="<?php echo e(asset('css/custom-tooltip.css')); ?>">
+  <script src="<?php echo e(asset('js/custom-tooltip.js')); ?>"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -33,9 +56,11 @@
       }
     }
 
-    // Immediate anti-flicker check for sidebar state
+    // Always enforce clean White / Light Theme & clear legacy dark state
     (function() {
       try {
+        localStorage.removeItem('guestpost_theme');
+        document.documentElement.classList.remove('dark');
         if (localStorage.getItem('guestpost_sidebar_collapsed') === 'true' && window.innerWidth >= 1024) {
           document.documentElement.classList.add('sidebar-is-collapsed');
         }
@@ -92,67 +117,129 @@
   <!-- Master Floating Layout Container (Top Gap & Side Margins matching Reference Image) -->
   <div class="w-full max-w-[1720px] mx-auto px-4 sm:px-6 pt-3.5 sm:pt-4 pb-6 flex-1 flex flex-col space-y-4">
 
-    <!-- Floating Top Header Card (with top gap and rounded-2xl corners like FINAPT) -->
-    <header class="w-full bg-white rounded-2xl border border-slate-200/90 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] px-6 py-3.5 flex items-center justify-between sticky top-3.5 z-30">
+    <!-- Floating Top Header Card (Ultra-Clean Professional SaaS Header) -->
+    <header class="w-full bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-[0_4px_25px_-5px_rgba(0,0,0,0.03)] px-5 sm:px-6 py-3 flex items-center justify-between sticky top-3.5 z-40 transition-all">
       
-      <!-- Left: Brand Logo & Global Search -->
-      <div class="flex items-center gap-6">
-        <a href="<?php echo e(route('dashboard')); ?>" class="flex items-center gap-3 group" title="GuestPost Pro">
-          <div class="w-9 h-9 rounded-xl bg-indigo-600 group-hover:bg-indigo-700 flex items-center justify-center text-white shadow-md shadow-indigo-600/30 transition">
-            <i class="fa-solid fa-chart-line text-base"></i>
+      <!-- Left: Brand Logo & Workspace Context -->
+      <div class="flex items-center gap-4 sm:gap-6">
+        <a href="<?php echo e(route('dashboard')); ?>" class="flex items-center gap-3 group" title="<?php echo e($appName); ?>">
+          <div class="h-9 min-w-9 flex items-center justify-center transition-transform group-hover:scale-105 overflow-hidden shrink-0 bg-transparent">
+            <?php if(!empty($appLogo)): ?>
+              <img src="<?php echo e($appLogo); ?>" alt="<?php echo e($appName); ?>" class="h-8 max-w-[150px] object-contain">
+            <?php else: ?>
+              <div class="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-xs">
+                <i class="<?php echo e($appIcon); ?> text-lg"></i>
+              </div>
+            <?php endif; ?>
           </div>
           <div>
-            <h1 class="font-black text-base tracking-tight text-slate-800 flex items-center gap-1">
-              GuestPost <span class="text-indigo-600">Pro</span>
+            <h1 class="font-black text-[15px] tracking-tight text-slate-900 group-hover:text-indigo-600 transition flex items-center gap-1.5">
+              <?php echo e($appName); ?>
+
             </h1>
-            <p class="text-[10px] text-slate-400 font-semibold tracking-wide">Publish • Grow • Rank</p>
+            <p class="text-[10px] text-slate-400 font-semibold tracking-wide leading-none"><?php echo e($appTagline); ?></p>
           </div>
         </a>
 
-        <!-- Global Search Input -->
-        <div class="relative w-64 sm:w-80 lg:w-96 hidden md:block">
-          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-xs text-slate-400"></i>
-          <input 
-            type="text" 
-            placeholder="Search anything... (e.g. order, client, website)" 
-            class="w-full bg-slate-50 border border-slate-200/90 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition"
-          />
+        <?php
+          $currentRouteName = 'Dashboard Overview';
+          if (request()->routeIs('clients')) $currentRouteName = 'Clients Management';
+          elseif (request()->routeIs('sellers')) $currentRouteName = 'Sellers Directory';
+          elseif (request()->routeIs('websites')) $currentRouteName = 'Websites Inventory';
+          elseif (request()->routeIs('orders')) $currentRouteName = 'Orders & Campaigns';
+          elseif (request()->routeIs('payments')) $currentRouteName = 'Financial Transactions';
+          elseif (request()->routeIs('expenses')) $currentRouteName = 'Business Expenses';
+          elseif (request()->routeIs('settings')) $currentRouteName = 'System & Branding Settings';
+        ?>
+
+        <div class="h-5 w-px bg-slate-200/80 hidden md:block"></div>
+
+        <!-- Enterprise Active Workspace Context / Breadcrumb -->
+        <div class="hidden md:flex items-center gap-2 text-xs">
+          <span class="text-slate-400 font-medium">Workspace</span>
+          <i class="fa-solid fa-chevron-right text-[8px] text-slate-300"></i>
+          <span class="font-extrabold text-slate-700"><?php echo e($currentRouteName); ?></span>
+          <span class="inline-flex items-center gap-1.5 ml-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/70 shadow-2xs">
+            <span class="relative flex h-1.5 w-1.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+            </span>
+            Live Core
+          </span>
         </div>
       </div>
 
-      <!-- Right: Quick Actions, Notifications & Profile -->
+      <!-- Right: System Status, Notifications & Authenticated Profile -->
       <div class="flex items-center gap-3">
         
-        <!-- Quick Activity Icon -->
-        <button class="w-9 h-9 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center transition" title="Recent Activity">
-          <i class="fa-regular fa-clock text-sm"></i>
-        </button>
-
-        <!-- Quick Help / Docs Icon -->
-        <button class="w-9 h-9 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center transition" title="Help & Documentation">
-          <i class="fa-regular fa-circle-question text-sm"></i>
-        </button>
-
-        <!-- Notification Bell with Red Badge -->
-        <button class="relative w-9 h-9 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center transition" title="Notifications">
+        <!-- Notification Bell with Ping Badge -->
+        <button 
+          type="button" 
+          class="relative w-9 h-9 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 border border-slate-200/60 flex items-center justify-center transition shadow-2xs" 
+          title="Notifications"
+        >
           <i class="fa-regular fa-bell text-sm"></i>
-          <span class="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
+          <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white shadow-xs">
             3
           </span>
         </button>
 
-        <div class="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+        <div class="h-6 w-px bg-slate-200/80 mx-1 hidden sm:block"></div>
 
-        <!-- User Profile -->
-        <div class="flex items-center gap-3 pl-1 cursor-pointer group">
-          <div class="w-9 h-9 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-sm overflow-hidden ring-2 ring-slate-100">
-            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="w-full h-full object-cover">
+        <!-- Authenticated User Profile Pill & Dropdown -->
+        <div class="relative">
+          <button 
+            type="button" 
+            onclick="toggleUserDropdown()" 
+            class="flex items-center gap-3 pl-1.5 pr-3 py-1 rounded-xl border border-slate-200/70 hover:border-slate-300 hover:bg-slate-50/80 transition shadow-2xs group cursor-pointer"
+          >
+            <div class="relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-indigo-100 shrink-0">
+              <img src="<?php echo e(!empty($currentUser->avatar) ? $currentUser->avatar : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'); ?>" alt="Avatar" class="w-full h-full object-cover">
+              <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+            </div>
+            <div class="hidden sm:block text-left">
+              <div class="flex items-center gap-1.5">
+                <h4 class="text-xs font-black text-slate-800 leading-tight group-hover:text-indigo-600 transition"><?php echo e($currentUser->name ?? 'Abdullah Munir'); ?></h4>
+                <span class="text-[9px] font-extrabold uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.2 rounded">
+                  <?php echo e(!empty($currentUser->role) ? ucfirst($currentUser->role) : 'Admin'); ?>
+
+                </span>
+              </div>
+              <p class="text-[10px] text-slate-400 font-semibold"><?php echo e($currentUser->email ?? 'admin@guestpost.com'); ?></p>
+            </div>
+            <i class="fa-solid fa-chevron-down text-[9px] text-slate-400 group-hover:text-slate-600 transition ml-0.5"></i>
+          </button>
+
+          <!-- Dropdown Menu -->
+          <div id="userProfileDropdown" class="hidden absolute right-0 mt-2.5 w-60 bg-white rounded-2xl border border-slate-200/90 shadow-[0_15px_40px_-5px_rgba(0,0,0,0.1)] p-2 z-50">
+            <div class="px-3.5 py-2.5 border-b border-slate-100">
+              <p class="text-xs font-black text-slate-800"><?php echo e($currentUser->name ?? 'Abdullah Munir'); ?></p>
+              <p class="text-[11px] text-slate-400 font-mono truncate"><?php echo e($currentUser->email ?? 'admin@guestpost.com'); ?></p>
+              <div class="flex items-center gap-1.5 mt-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <i class="fa-solid fa-shield-halved mr-1 text-[8px]"></i> Authenticated
+                </span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  Sanctum Active
+                </span>
+              </div>
+            </div>
+            <div class="p-1 space-y-0.5 text-xs">
+              <a href="<?php echo e(route('settings')); ?>" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium transition">
+                <i class="fa-solid fa-sliders text-slate-400 w-4 text-center"></i>
+                <span>System Settings</span>
+              </a>
+              <a href="<?php echo e(route('websites')); ?>" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium transition">
+                <i class="fa-solid fa-globe text-slate-400 w-4 text-center"></i>
+                <span>Manage Inventory</span>
+              </a>
+              <div class="my-1 border-t border-slate-100"></div>
+              <a href="/logout" onclick="return confirm('Are you sure you want to sign out of the system?');" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 font-medium transition">
+                <i class="fa-solid fa-arrow-right-from-bracket text-rose-500 w-4 text-center"></i>
+                <span>Sign Out (Logout)</span>
+              </a>
+            </div>
           </div>
-          <div class="hidden sm:block text-left">
-            <h4 class="text-xs font-black text-slate-800 leading-tight group-hover:text-indigo-600 transition">Abdullah Munir</h4>
-            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Administrator</p>
-          </div>
-          <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 group-hover:text-slate-600 transition hidden sm:block"></i>
         </div>
 
       </div>
@@ -277,6 +364,24 @@
             </a>
           </div>
 
+          <!-- Section: SYSTEM & ADMIN -->
+          <div class="space-y-1">
+            <div class="sidebar-section-title px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              System
+            </div>
+
+            <!-- Settings & White-Label Branding -->
+            <a href="<?php echo e(route('settings')); ?>" title="White-Label & System Settings" class="sidebar-link flex items-center justify-between px-3 py-2.5 rounded-xl transition-all <?php echo e(request()->routeIs('settings') ? 'bg-slate-100 text-slate-900 border-l-[3px] border-indigo-600 font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border-l-[3px] border-transparent font-semibold'); ?>">
+              <div class="flex items-center gap-3">
+                <i class="fa-solid fa-sliders w-4 text-center text-sm shrink-0 <?php echo e(request()->routeIs('settings') ? 'text-indigo-600' : 'text-slate-400'); ?>"></i>
+                <span class="sidebar-text">Settings & Brand</span>
+              </div>
+              <span class="sidebar-text inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                Config
+              </span>
+            </a>
+          </div>
+
         </nav>
       </div>
 
@@ -289,7 +394,7 @@
           </span>
           <div class="sidebar-text min-w-0">
             <p class="text-[11px] font-bold text-slate-700 leading-none">System Active</p>
-            <p class="text-[9px] text-slate-400 mt-0.5 truncate">All core modules synced</p>
+            <p class="text-[9px] text-slate-400 mt-0.5 truncate"><?php echo e($footerCopyright); ?></p>
           </div>
         </div>
         <div class="sidebar-footer-mini hidden items-center justify-center py-2" title="System Active">
@@ -304,6 +409,64 @@
     </main>
 
   </div>
+
+  <!-- Floating Bottom Footer Card (Exact Match with Header Theme & Rounded Style) -->
+  <footer class="w-full bg-white rounded-2xl border border-slate-200/90 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 select-none mt-auto">
+    
+    <!-- Left: Mini Brand & Dynamic Copyright -->
+    <div class="flex items-center gap-3">
+      <div class="h-7 min-w-7 flex items-center justify-center bg-transparent shrink-0">
+        <?php if(!empty($appLogo)): ?>
+          <img src="<?php echo e($appLogo); ?>" alt="<?php echo e($appName); ?>" class="h-6 max-w-[110px] object-contain">
+        <?php else: ?>
+          <i class="<?php echo e($appIcon); ?> text-indigo-600 text-base"></i>
+        <?php endif; ?>
+      </div>
+      <div class="flex flex-col sm:flex-row sm:items-center sm:gap-2 text-xs text-slate-500">
+        <span class="font-bold text-slate-800"><?php echo e($appName); ?></span>
+        <span class="hidden sm:inline text-slate-300">•</span>
+        <span class="text-[11px] text-slate-500 font-medium"><?php echo e($footerCopyright); ?></span>
+      </div>
+    </div>
+
+    <!-- Center: Live Status & Cloud Badge -->
+    <div class="flex items-center gap-2">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span>99.9% Uptime</span>
+      </span>
+      <span class="text-slate-300 hidden md:inline">•</span>
+      <span class="text-[11px] text-slate-400 font-semibold hidden md:inline">
+        Enterprise Broker Engine
+      </span>
+    </div>
+
+    <!-- Right: Quick Support & Back to Top -->
+    <div class="flex items-center gap-4 text-xs font-semibold text-slate-500">
+      <?php if(!empty($appSettings['company_email'])): ?>
+        <a href="mailto:<?php echo e($appSettings['company_email']); ?>" class="hover:text-indigo-600 flex items-center gap-1.5 transition text-[11px]" title="Support Email">
+          <i class="fa-regular fa-envelope text-slate-400"></i>
+          <span class="hidden lg:inline"><?php echo e($appSettings['company_email']); ?></span>
+        </a>
+      <?php endif; ?>
+
+      <a href="<?php echo e(route('settings')); ?>" class="hover:text-indigo-600 flex items-center gap-1.5 transition text-[11px]" title="System & Branding Settings">
+        <i class="fa-solid fa-sliders text-slate-400"></i>
+        <span>Settings</span>
+      </a>
+
+      <!-- Smooth Back to Top Button -->
+      <button 
+        type="button" 
+        onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" 
+        class="w-7 h-7 rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-400 border border-slate-200/80 flex items-center justify-center transition shadow-xs" 
+        title="Scroll to Top"
+      >
+        <i class="fa-solid fa-arrow-up text-xs"></i>
+      </button>
+    </div>
+
+  </footer>
 
 </div>
 
@@ -858,34 +1021,42 @@
           </select>
         </div>
 
-        <!-- Dates Grid: Order Date & Deadline -->
+        <!-- Dates Grid: Order Date & Deadline (Enhanced with Flatpickr Calendar) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1.5">
               Order Date <span class="text-rose-500">*</span>
             </label>
             <div class="relative">
-              <i class="fa-regular fa-calendar absolute left-3.5 top-3 text-xs text-slate-400"></i>
+              <i class="fa-regular fa-calendar absolute left-3.5 top-3 text-xs text-slate-400 z-10 pointer-events-none"></i>
               <input 
-                type="date" 
+                type="text" 
                 id="orderDate" 
                 name="order_date" 
+                data-calendar="true"
+                data-shortcuts="true"
                 required 
-                class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition"
+                placeholder="Select Order Date..."
+                class="custom-datepicker w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-indigo-500 focus:bg-white transition cursor-pointer"
               >
+              <i class="fa-solid fa-chevron-down absolute right-3 top-3 text-[10px] text-slate-400 pointer-events-none"></i>
             </div>
           </div>
 
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1.5">Delivery Deadline</label>
             <div class="relative">
-              <i class="fa-solid fa-flag-checkered absolute left-3.5 top-3 text-xs text-slate-400"></i>
+              <i class="fa-solid fa-flag-checkered absolute left-3.5 top-3 text-xs text-slate-400 z-10 pointer-events-none"></i>
               <input 
-                type="date" 
+                type="text" 
                 id="orderDeadline" 
                 name="deadline" 
-                class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition"
+                data-calendar="true"
+                data-shortcuts="true"
+                placeholder="Set Target Delivery Date..."
+                class="custom-datepicker w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-indigo-500 focus:bg-white transition cursor-pointer"
               >
+              <i class="fa-solid fa-chevron-down absolute right-3 top-3 text-[10px] text-slate-400 pointer-events-none"></i>
             </div>
           </div>
         </div>
@@ -1409,7 +1580,8 @@
     function openCreateOrderModal() {
       document.getElementById('orderForm').reset();
       document.getElementById('orderId').value = '';
-      document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
+      window.setDatePickerValue('orderDate', new Date().toISOString().split('T')[0]);
+      window.setDatePickerValue('orderDeadline', '');
       document.getElementById('orderModalTitle').textContent = 'Create Guest Post Order';
       document.getElementById('orderSubmitText').textContent = 'Save Order';
       window.refreshCustomSelect('orderClientId');
@@ -1427,8 +1599,8 @@
       document.getElementById('orderForm').reset();
       document.getElementById('orderId').value = order.id;
       document.getElementById('orderClientId').value = order.client_id || '';
-      document.getElementById('orderDate').value = order.order_date || '';
-      document.getElementById('orderDeadline').value = order.deadline || '';
+      window.setDatePickerValue('orderDate', order.order_date || '');
+      window.setDatePickerValue('orderDeadline', order.deadline || '');
       document.getElementById('orderClientPrice').value = order.total_client_price !== null ? order.total_client_price : '';
       document.getElementById('orderVendorCost').value = order.total_vendor_cost !== null ? order.total_vendor_cost : '';
       document.getElementById('orderStatus').value = order.status || 'pending';
@@ -1535,6 +1707,18 @@
         localStorage.setItem('guestpost_sidebar_collapsed', isCollapsed ? 'true' : 'false');
       } catch (e) {}
     }
+
+    // User Profile Dropdown
+    function toggleUserDropdown() {
+      const dropdown = document.getElementById('userProfileDropdown');
+      if (dropdown) dropdown.classList.toggle('hidden');
+    }
+    window.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('userProfileDropdown');
+      if (dropdown && !dropdown.contains(e.target) && !e.target.closest('button[onclick*="toggleUserDropdown"]')) {
+        dropdown.classList.add('hidden');
+      }
+    });
 
     // Keyboard shortcut for toggling sidebar: Ctrl + B / Cmd + B
     window.addEventListener('keydown', (e) => {

@@ -130,6 +130,7 @@ switch ($command) {
             'Modules\\ClientManagement\\Database\\seeders\\OrderItemDatabaseSeeder',
             'Modules\\AdminManagement\\Database\\seeders\\PaymentDatabaseSeeder',
             'Modules\\AdminManagement\\Database\\seeders\\ExpenseDatabaseSeeder',
+            'Modules\\AdminManagement\\Database\\seeders\\SettingDatabaseSeeder',
             'Database\\Seeders\\DatabaseSeeder',
         ];
 

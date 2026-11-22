@@ -15,13 +15,22 @@
       <p class="text-xs text-slate-500 mt-1">Here's an overview of your guest post brokerage operations today.</p>
     </div>
 
-    <!-- Date Filter Dropdown -->
+    <!-- Interactive Date Filter Calendar -->
     <div class="flex items-center gap-2">
-      <button class="bg-white border border-slate-200/90 shadow-sm rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 flex items-center gap-2 hover:bg-slate-50 transition">
-        <i class="fa-regular fa-calendar text-slate-400"></i>
-        <span>This Month</span>
-        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 ml-1"></i>
-      </button>
+      <div class="relative w-64">
+        <i class="fa-regular fa-calendar absolute left-3.5 top-3 text-xs text-slate-400 z-10 pointer-events-none"></i>
+        <input 
+          type="text" 
+          id="dashboardDateRange" 
+          data-calendar="true" 
+          data-mode="range" 
+          data-shortcuts="true"
+          placeholder="Select period..." 
+          value="{{ date('M 01, Y') }} to {{ date('M d, Y') }}"
+          class="custom-datepicker w-full bg-white border border-slate-200/90 shadow-sm rounded-xl pl-9 pr-8 py-2 text-xs font-bold text-slate-700 hover:border-slate-300 focus:outline-none focus:border-indigo-500 transition cursor-pointer"
+        >
+        <i class="fa-solid fa-chevron-down absolute right-3 top-3 text-[10px] text-slate-400 pointer-events-none"></i>
+      </div>
     </div>
   </div>
 

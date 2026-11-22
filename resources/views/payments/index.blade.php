@@ -535,15 +535,19 @@
             Payment Date <span class="text-rose-500">*</span>
           </label>
           <div class="relative">
-            <i class="fa-regular fa-calendar absolute left-3.5 top-3 text-xs text-slate-400"></i>
+            <i class="fa-regular fa-calendar absolute left-3.5 top-3 text-xs text-slate-400 z-10 pointer-events-none"></i>
             <input 
-              type="date" 
+              type="text" 
               id="paymentDate" 
               name="payment_date" 
+              data-calendar="true"
+              data-shortcuts="true"
               required 
               value="{{ date('Y-m-d') }}"
-              class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition"
+              placeholder="Select Payment Date..."
+              class="custom-datepicker w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-indigo-500 focus:bg-white transition cursor-pointer"
             >
+            <i class="fa-solid fa-chevron-down absolute right-3 top-3 text-[10px] text-slate-400 pointer-events-none"></i>
           </div>
         </div>
 
